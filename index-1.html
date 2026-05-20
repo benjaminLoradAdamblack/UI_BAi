@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UI_BAi — Color Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --accent: #7c6af7;
+    --accent2: #f76ab0;
+    --success: #4af7a0;
+    --warn: #f7c44a;
+    --danger: #f74a4a;
+    --radius: 14px;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BG texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 20%, rgba(124,106,247,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(247,106,176,0.06) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* HEADER */
+  header {
+    padding: 32px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+  .logo em { color: var(--accent2); font-style: normal; }
+  .tagline {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    margin: 32px 0 28px;
+  }
+  .tab {
+    flex: 1;
+    padding: 10px 16px;
+    border-radius: 9px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .tab.active {
+    background: var(--surface2);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* PANEL */
+  .panel { display: none; animation: fadeIn 0.25s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  /* ===== COMPARE PANEL ===== */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .color-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .color-preview {
+    height: 160px;
+    position: relative;
+    cursor: pointer;
+    transition: filter 0.2s;
+  }
+  .color-preview:hover { filter: brightness(1.08); }
+  .color-preview-label {
+    position: absolute;
+    bottom: 12px;
+    left: 14px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  }
+  .color-card-body { padding: 14px; }
+  .color-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  input[type="color"] {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 2px;
+  }
+  input[type="text"], input[type="number"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    border-radius: 8px;
+    padding: 8px 12px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, input[type="number"]:focus { border-color: var(--accent); }
+
+  .color-name { font-size: 13px; color: var(--muted); font-family: var(--mono); }
+
+  /* diff bar */
+  .diff-bar-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow: hidden;
+  }
+  .diff-swatch {
+    flex: 1;
+    height: 64px;
+    transition: background 0.3s;
+  }
+  .diff-swatch:first-child { border-radius: 8px 0 0 8px; }
+  .diff-swatch:last-child { border-radius: 0 8px 8px 0; }
+  .diff-mid {
+    width: 48px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .diff-delta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-val { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .stat-label { font-size: 11px; font-family: var(--mono); color: var(--muted); letter-spacing: 0.08em; }
+
+  /* ===== CONVERT PANEL ===== */
+  .convert-main {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .convert-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .big-color-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 14px;
+    cursor: pointer;
+    border: 2px solid var(--border);
+    transition: transform 0.15s;
+    flex-shrink: 0;
+  }
+  .big-color-preview:hover { transform: scale(1.05); }
+  .convert-formats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .format-row { display: flex; flex-direction: column; gap: 6px; }
+  .format-label { font-size: 11px; font-family: var(--mono); color: var(--muted); letter-spacing: 0.1em; }
+  .copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .copy-btn:hover { border-color: var(--accent); background: rgba(124,106,247,0.06); }
+  .copy-btn span { font-family: var(--mono); font-size: 13px; color: var(--text); flex: 1; text-align: left; }
+  .copy-btn svg { flex-shrink: 0; color: var(--muted); }
+  .copy-btn.copied { border-color: var(--success); }
+  .copy-btn.copied span { color: var(--success); }
+
+  /* ===== CONTRAST PANEL ===== */
+  .contrast-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .contrast-preview {
+    grid-column: 1/-1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .contrast-sample-text {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    transition: color 0.2s;
+    font-family: var(--sans);
+  }
+  .contrast-sample-small {
+    font-size: 14px;
+    transition: color 0.2s;
+    font-family: var(--sans);
+    margin-bottom: 4px;
+  }
+  .contrast-ratio-display {
+    font-size: 48px;
+    font-weight: 800;
+    font-family: var(--mono);
+    margin: 10px 0 4px;
+    transition: color 0.3s;
+  }
+  .wcag-badges {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 16px;
+  }
+  .wcag-badge {
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: var(--mono);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    border: 1px solid;
+  }
+  .wcag-badge.pass { color: var(--success); border-color: rgba(74,247,160,0.3); background: rgba(74,247,160,0.06); }
+  .wcag-badge.fail { color: var(--danger); border-color: rgba(247,74,74,0.3); background: rgba(247,74,74,0.06); }
+
+  /* ===== PALETTE PANEL ===== */
+  .palette-source-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 20px;
+  }
+  .palette-source-preview {
+    width: 56px;
+    height: 56px;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    transition: transform 0.15s;
+  }
+  .palette-source-preview:hover { transform: scale(1.05); }
+  .palette-source-info { flex: 1; }
+  .palette-source-hex { font-family: var(--mono); font-size: 16px; font-weight: 500; }
+  .palette-source-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .gen-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    padding: 11px 20px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .gen-btn:hover { background: #9080ff; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(124,106,247,0.3); }
+
+  .harmony-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .htab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.06em;
+  }
+  .htab.active { border-color: var(--accent); color: var(--accent); background: rgba(124,106,247,0.08); }
+  .htab:hover:not(.active) { color: var(--text); border-color: rgba(255,255,255,0.15); }
+
+  .palette-swatches {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .swatch {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .swatch:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .swatch-color { height: 80px; }
+  .swatch-info { background: var(--surface); padding: 8px 10px; }
+  .swatch-hex { font-family: var(--mono); font-size: 11px; color: var(--text); }
+  .swatch-name { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* ===== UTIL ===== */
+  .kbd {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 2px 7px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  footer {
+    text-align: center;
+    padding: 40px 0 32px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 640px) {
+    .compare-grid, .contrast-grid, .convert-formats { grid-template-columns: 1fr; }
+    .palette-swatches { grid-template-columns: repeat(3, 1fr); }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .tabs { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="logo">UI_<span>B</span><em>Ai</em></div>
+      <div class="tagline" style="margin-top:4px">Color Intelligence Tool</div>
+    </div>
+    <div class="tagline" style="text-align:right">v1.0.0&nbsp;&nbsp;Open Source</div>
+  </header>
+
+  <!-- HISTORY BAR -->
+  <div id="history-bar" style="display:none;margin-bottom:20px">
+    <div class="section-title" style="margin-bottom:8px">Recent Colors</div>
+    <div id="history-swatches" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('compare')">Compare</button>
+    <button class="tab" onclick="switchTab('convert')">Convert</button>
+    <button class="tab" onclick="switchTab('contrast')">Contrast</button>
+    <button class="tab" onclick="switchTab('palette')">Palette</button>
+    <button class="tab" onclick="switchTab('gradient')">Gradient</button>
+  </div>
+
+  <!-- ===== COMPARE ===== -->
+  <div id="panel-compare" class="panel active">
+    <div class="section-title">Side-by-side comparison</div>
+    <div class="compare-grid">
+      <div class="color-card">
+        <div class="color-preview" id="prev1" onclick="document.getElementById('cpick1').click()">
+          <span class="color-preview-label" id="prevlabel1">#7C6AF7</span>
+        </div>
+        <div class="color-card-body">
+          <div class="color-input-row">
+            <input type="color" id="cpick1" value="#7C6AF7" oninput="updateColor(1,this.value)">
+            <input type="text" id="chex1" value="#7C6AF7" placeholder="#HEX" oninput="hexInput(1,this.value)" maxlength="7">
+          </div>
+          <div class="color-name" id="cname1">Electric Violet</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-preview" id="prev2" onclick="document.getElementById('cpick2').click()">
+          <span class="color-preview-label" id="prevlabel2">#F76AB0</span>
+        </div>
+        <div class="color-card-body">
+          <div class="color-input-row">
+            <input type="color" id="cpick2" value="#F76AB0" oninput="updateColor(2,this.value)">
+            <input type="text" id="chex2" value="#F76AB0" placeholder="#HEX" oninput="hexInput(2,this.value)" maxlength="7">
+          </div>
+          <div class="color-name" id="cname2">Hot Pink</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="diff-bar-wrap">
+      <div class="diff-swatch" id="diff-swatch1"></div>
+      <div class="diff-mid"><div class="diff-delta" id="diff-delta">ΔE<br>—</div></div>
+      <div class="diff-swatch" id="diff-swatch2"></div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-val" id="stat-hue">—°</div>
+        <div class="stat-label">Hue Diff</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-sat">—%</div>
+        <div class="stat-label">Sat Diff</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-lum">—%</div>
+        <div class="stat-label">Light Diff</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CONVERT ===== -->
+  <div id="panel-convert" class="panel">
+    <div class="section-title">Format converter</div>
+    <div class="convert-main">
+      <div class="convert-picker-row">
+        <input type="color" id="conv-picker" value="#7C6AF7" oninput="updateConvert(this.value)" style="display:none">
+        <div class="big-color-preview" id="conv-preview" onclick="document.getElementById('conv-picker').click()"></div>
+        <div style="flex:1">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px">Click to pick or type HEX below</div>
+          <input type="text" id="conv-hex-input" value="#7C6AF7" placeholder="#HEX" oninput="convHexInput(this.value)" maxlength="7" style="max-width:180px">
+        </div>
+      </div>
+      <div class="convert-formats" id="conv-formats"></div>
+    </div>
+  </div>
+
+  <!-- ===== CONTRAST ===== -->
+  <div id="panel-contrast" class="panel">
+    <div class="section-title">WCAG Accessibility Contrast</div>
+    <div class="contrast-preview" id="contrast-bg">
+      <div class="contrast-sample-text" id="contrast-large">Large Text Sample (18pt+)</div>
+      <div class="contrast-sample-small" id="contrast-small">Normal body text — the quick brown fox jumps over the lazy dog</div>
+      <div class="contrast-ratio-display" id="contrast-ratio">—</div>
+      <div style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-top:-4px">contrast ratio</div>
+      <div class="wcag-badges" id="wcag-badges"></div>
+    </div>
+    <div class="contrast-grid">
+      <div class="color-card">
+        <div class="color-preview" id="cprev-fg" onclick="document.getElementById('cpick-fg').click()">
+          <span class="color-preview-label" id="cprev-fg-label">#FFFFFF</span>
+        </div>
+        <div class="color-card-body">
+          <div class="color-input-row">
+            <input type="color" id="cpick-fg" value="#ffffff" oninput="updateContrast('fg',this.value)">
+            <input type="text" id="chex-fg" value="#FFFFFF" placeholder="#HEX" oninput="contrastHexInput('fg',this.value)" maxlength="7">
+          </div>
+          <div style="font-size:11px;font-family:var(--mono);color:var(--muted)">Foreground / Text</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-preview" id="cprev-bg" onclick="document.getElementById('cpick-bg').click()">
+          <span class="color-preview-label" id="cprev-bg-label">#7C6AF7</span>
+        </div>
+        <div class="color-card-body">
+          <div class="color-input-row">
+            <input type="color" id="cpick-bg" value="#7c6af7" oninput="updateContrast('bg',this.value)">
+            <input type="text" id="chex-bg" value="#7C6AF7" placeholder="#HEX" oninput="contrastHexInput('bg',this.value)" maxlength="7">
+          </div>
+          <div style="font-size:11px;font-family:var(--mono);color:var(--muted)">Background</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PALETTE ===== -->
+  <div id="panel-palette" class="panel">
+    <div class="section-title">Color Harmony Generator</div>
+    <div class="palette-source-row">
+      <input type="color" id="pal-picker" value="#7C6AF7" oninput="updatePaletteSource(this.value)" style="display:none">
+      <div class="palette-source-preview" id="pal-src-prev" onclick="document.getElementById('pal-picker').click()"></div>
+      <div class="palette-source-info">
+        <div class="palette-source-hex" id="pal-src-hex">#7C6AF7</div>
+        <div class="palette-source-desc">Source color — click swatch to change</div>
+      </div>
+      <button class="gen-btn" onclick="generatePalette()">Generate</button>
+    </div>
+    <div class="harmony-tabs" id="harmony-tabs">
+      <button class="htab active" data-h="complementary" onclick="selectHarmony(this)">Complementary</button>
+      <button class="htab" data-h="analogous" onclick="selectHarmony(this)">Analogous</button>
+      <button class="htab" data-h="triadic" onclick="selectHarmony(this)">Triadic</button>
+      <button class="htab" data-h="split" onclick="selectHarmony(this)">Split-Comp</button>
+      <button class="htab" data-h="tetradic" onclick="selectHarmony(this)">Tetradic</button>
+      <button class="htab" data-h="tints" onclick="selectHarmony(this)">Tints</button>
+      <button class="htab" data-h="shades" onclick="selectHarmony(this)">Shades</button>
+    </div>
+    <div class="palette-swatches" id="palette-swatches"></div>
+  </div>
+
+
+  <!-- ===== GRADIENT ===== -->
+  <div id="panel-gradient" class="panel">
+    <div class="section-title">CSS Gradient Builder</div>
+    <div class="convert-main" style="margin-bottom:16px">
+      <div id="gradient-preview" style="height:140px;border-radius:10px;margin-bottom:20px;transition:background 0.3s;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div>
+          <div class="format-label" style="margin-bottom:6px">Color Stop 1</div>
+          <div class="color-input-row">
+            <input type="color" id="grad-c1" value="#7C6AF7" oninput="updateGradient()">
+            <input type="text" id="grad-h1" value="#7C6AF7" placeholder="#HEX" oninput="gradHexInput(1,this.value)" maxlength="7">
+          </div>
+        </div>
+        <div>
+          <div class="format-label" style="margin-bottom:6px">Color Stop 2</div>
+          <div class="color-input-row">
+            <input type="color" id="grad-c2" value="#F76AB0" oninput="updateGradient()">
+            <input type="text" id="grad-h2" value="#F76AB0" placeholder="#HEX" oninput="gradHexInput(2,this.value)" maxlength="7">
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div>
+          <div class="format-label" style="margin-bottom:6px">Type</div>
+          <select id="grad-type" onchange="updateGradient()" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;border-radius:8px;padding:9px 12px;width:100%;outline:none">
+            <option value="linear">Linear</option>
+            <option value="radial">Radial</option>
+            <option value="conic">Conic</option>
+          </select>
+        </div>
+        <div>
+          <div class="format-label" style="margin-bottom:6px">Angle: <span id="grad-angle-val">135</span>°</div>
+          <input type="range" id="grad-angle" min="0" max="360" value="135" oninput="document.getElementById('grad-angle-val').textContent=this.value;updateGradient()" style="width:100%;accent-color:var(--accent);margin-top:10px">
+        </div>
+      </div>
+      <div class="format-row">
+        <div class="format-label">CSS Output</div>
+        <button class="copy-btn" id="grad-css-btn" onclick="copyVal(this, document.getElementById('grad-css-output').textContent)">
+          <span id="grad-css-output"></span>
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>UI_BAi — Color Intelligence&nbsp;&nbsp;·&nbsp;&nbsp;Open Source</span>
+  </footer>
+</div>
+
+<script>
+// ============================================================
+//  UTILS
+// ============================================================
+function hexToRgb(hex) {
+  hex = hex.replace(/^#/, '');
+  if (hex.length === 3) hex = hex.split('').map(c => c+c).join('');
+  const n = parseInt(hex, 16);
+  return { r: (n>>16)&255, g: (n>>8)&255, b: n&255 };
+}
+function rgbToHex(r,g,b) {
+  return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+function rgbToHsl(r,g,b) {
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h,s,l=(max+min)/2;
+  if(max===min){ h=s=0; }
+  else {
+    const d=max-min; s=l>0.5?d/(2-max-min):d/(max+min);
+    switch(max){ case r:h=(g-b)/d+(g<b?6:0);break; case g:h=(b-r)/d+2;break; case b:h=(r-g)/d+4;break; }
+    h/=6;
+  }
+  return { h:Math.round(h*360), s:Math.round(s*100), l:Math.round(l*100) };
+}
+function hslToRgb(h,s,l) {
+  s/=100; l/=100; h/=360;
+  let r,g,b;
+  if(s===0){ r=g=b=l; }
+  else {
+    const q=l<0.5?l*(1+s):l+s-l*s, p=2*l-q;
+    const hue2=(t)=>{ t=((t%1)+1)%1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; };
+    r=hue2(h+1/3); g=hue2(h); b=hue2(h-1/3);
+  }
+  return { r:Math.round(r*255), g:Math.round(g*255), b:Math.round(b*255) };
+}
+function rgbToHsv(r,g,b) {
+  r/=255;g/=255;b/=255;
+  const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;
+  let h; const s=max?d/max:0; const v=max;
+  if(!d){h=0;}else{switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;}h/=6;}
+  return {h:Math.round(h*360),s:Math.round(s*100),v:Math.round(v*100)};
+}
+function hexToCmyk(hex) {
+  let {r,g,b}=hexToRgb(hex); r/=255;g/=255;b/=255;
+  const k=1-Math.max(r,g,b);
+  if(k===1)return{c:0,m:0,y:0,k:100};
+  return{c:Math.round((1-r-k)/(1-k)*100),m:Math.round((1-g-k)/(1-k)*100),y:Math.round((1-b-k)/(1-k)*100),k:Math.round(k*100)};
+}
+function luminance(r,g,b) {
+  const s=(v)=>{ v/=255; return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4); };
+  return 0.2126*s(r)+0.7152*s(g)+0.0722*s(b);
+}
+function contrastRatio(hex1,hex2) {
+  const c1=hexToRgb(hex1), c2=hexToRgb(hex2);
+  const l1=luminance(c1.r,c1.g,c1.b), l2=luminance(c2.r,c2.g,c2.b);
+  const [hi,lo]=[Math.max(l1,l2),Math.min(l1,l2)];
+  return ((hi+0.05)/(lo+0.05));
+}
+function deltaE(hex1,hex2) {
+  const c1=hexToRgb(hex1), c2=hexToRgb(hex2);
+  return Math.round(Math.sqrt(Math.pow(c1.r-c2.r,2)+Math.pow(c1.g-c2.g,2)+Math.pow(c1.b-c2.b,2)));
+}
+function namedColor(hex) {
+  const names=[
+    ['#FF0000','Red'],['#00FF00','Green'],['#0000FF','Blue'],['#FFFF00','Yellow'],
+    ['#FF00FF','Magenta'],['#00FFFF','Cyan'],['#FFA500','Orange'],['#800080','Purple'],
+    ['#008000','Dark Green'],['#000080','Navy'],['#FFC0CB','Pink'],['#A52A2A','Brown'],
+    ['#808080','Gray'],['#FFFFFF','White'],['#000000','Black'],['#7C6AF7','Electric Violet'],
+    ['#F76AB0','Hot Pink'],['#4AF7A0','Mint'],['#F7C44A','Amber'],
+  ];
+  const {r,g,b}=hexToRgb(hex);
+  let best=names[0], bestD=999999;
+  names.forEach(([h,n])=>{ const c=hexToRgb(h); const d=Math.sqrt((r-c.r)**2+(g-c.g)**2+(b-c.b)**2); if(d<bestD){bestD=d;best=[h,n];} });
+  return best[1];
+}
+function isValidHex(h) { return /^#[0-9A-Fa-f]{6}$/.test(h); }
+function getContrastColor(hex) {
+  const {r,g,b}=hexToRgb(hex);
+  return luminance(r,g,b)>0.35?'#111111':'#FFFFFF';
+}
+
+// ============================================================
+//  TAB
+// ============================================================
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i)=>{ t.classList.toggle('active', ['compare','convert','contrast','palette','gradient'][i]===name); });
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
+// ============================================================
+//  COMPARE
+// ============================================================
+let c1='#7C6AF7', c2='#F76AB0';
+function updateColor(n, hex) {
+  if(n===1) c1=hex; else c2=hex;
+  document.getElementById('cpick'+(n)).value=hex;
+  document.getElementById('chex'+n).value=hex.toUpperCase();
+  document.getElementById('prev'+n).style.background=hex;
+  document.getElementById('prevlabel'+n).textContent=hex.toUpperCase();
+  document.getElementById('prevlabel'+n).style.color=getContrastColor(hex);
+  document.getElementById('cname'+n).textContent=namedColor(hex);
+  addToHistory(hex);
+  refreshCompareStats();
+}
+function hexInput(n, val) {
+  if(isValidHex(val)) { document.getElementById('cpick'+n).value=val; updateColor(n, val); }
+}
+function refreshCompareStats() {
+  document.getElementById('diff-swatch1').style.background=c1;
+  document.getElementById('diff-swatch2').style.background=c2;
+  const de=deltaE(c1,c2);
+  document.getElementById('diff-delta').innerHTML=`ΔE<br><b style="color:var(--text);font-size:15px">${de}</b>`;
+  const hsl1=rgbToHsl(...Object.values(hexToRgb(c1)));
+  const hsl2=rgbToHsl(...Object.values(hexToRgb(c2)));
+  document.getElementById('stat-hue').textContent=Math.abs(hsl1.h-hsl2.h)+'°';
+  document.getElementById('stat-sat').textContent=Math.abs(hsl1.s-hsl2.s)+'%';
+  document.getElementById('stat-lum').textContent=Math.abs(hsl1.l-hsl2.l)+'%';
+}
+
+// ============================================================
+//  CONVERT
+// ============================================================
+let convColor='#7C6AF7';
+function updateConvert(hex) {
+  convColor=hex;
+  document.getElementById('conv-preview').style.background=hex;
+  document.getElementById('conv-hex-input').value=hex.toUpperCase();
+  addToHistory(hex);
+  renderConvertFormats();
+}
+function convHexInput(val) {
+  if(isValidHex(val)) { document.getElementById('conv-picker').value=val; updateConvert(val); }
+}
+function renderConvertFormats() {
+  const hex=convColor.toUpperCase();
+  const {r,g,b}=hexToRgb(hex);
+  const hsl=rgbToHsl(r,g,b);
+  const hsv=rgbToHsv(r,g,b);
+  const cmyk=hexToCmyk(hex);
+  const formats=[
+    ['HEX', hex],
+    ['RGB', `rgb(${r}, ${g}, ${b})`],
+    ['HSL', `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`],
+    ['HSV', `hsv(${hsv.h}, ${hsv.s}%, ${hsv.v}%)`],
+    ['CMYK', `cmyk(${cmyk.c}%, ${cmyk.m}%, ${cmyk.y}%, ${cmyk.k}%)`],
+    ['CSS VAR', `--color: ${hex};`],
+  ];
+  document.getElementById('conv-formats').innerHTML=formats.map(([label,val])=>`
+    <div class="format-row">
+      <div class="format-label">${label}</div>
+      <button class="copy-btn" onclick="copyVal(this,'${val.replace(/'/g,"\\'")}')">
+        <span>${val}</span>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </button>
+    </div>
+  `).join('');
+}
+function copyVal(btn, val) {
+  navigator.clipboard.writeText(val).then(()=>{
+    btn.classList.add('copied');
+    const sp=btn.querySelector('span');
+    const orig=sp.textContent;
+    sp.textContent='Copied!';
+    setTimeout(()=>{ btn.classList.remove('copied'); sp.textContent=orig; }, 1400);
+  });
+}
+
+// ============================================================
+//  CONTRAST
+// ============================================================
+let cfgColor='#FFFFFF', cbgColor='#7C6AF7';
+function updateContrast(type, hex) {
+  if(type==='fg') cfgColor=hex; else cbgColor=hex;
+  document.getElementById('cpick-'+type).value=hex;
+  document.getElementById('chex-'+type).value=hex.toUpperCase();
+  document.getElementById('cprev-'+type).style.background=hex;
+  document.getElementById('cprev-'+type+'-label').textContent=hex.toUpperCase();
+  document.getElementById('cprev-'+type+'-label').style.color=getContrastColor(hex);
+  refreshContrast();
+}
+function contrastHexInput(type, val) {
+  if(isValidHex(val)) { document.getElementById('cpick-'+type).value=val; updateContrast(type, val); }
+}
+function refreshContrast() {
+  const ratio=contrastRatio(cfgColor, cbgColor);
+  const ratioStr=ratio.toFixed(2)+':1';
+  document.getElementById('contrast-ratio').textContent=ratioStr;
+  document.getElementById('contrast-bg').style.background=cbgColor;
+  document.getElementById('contrast-large').style.color=cfgColor;
+  document.getElementById('contrast-small').style.color=cfgColor;
+  let color = ratio>=7?'var(--success)':ratio>=4.5?'var(--warn)':'var(--danger)';
+  document.getElementById('contrast-ratio').style.color=color;
+  const badges=[
+    ['AA Normal', ratio>=4.5],
+    ['AA Large', ratio>=3],
+    ['AAA Normal', ratio>=7],
+    ['AAA Large', ratio>=4.5],
+    ['UI Components', ratio>=3],
+  ];
+  document.getElementById('wcag-badges').innerHTML=badges.map(([label,pass])=>`
+    <span class="wcag-badge ${pass?'pass':'fail'}">${pass?'✓':'✗'} ${label}</span>
+  `).join('');
+}
+
+// ============================================================
+//  PALETTE
+// ============================================================
+let palColor='#7C6AF7', palHarmony='complementary';
+function updatePaletteSource(hex) {
+  palColor=hex;
+  document.getElementById('pal-src-prev').style.background=hex;
+  document.getElementById('pal-src-hex').textContent=hex.toUpperCase();
+  generatePalette();
+updateGradient();
+}
+function selectHarmony(btn) {
+  document.querySelectorAll('.htab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  palHarmony=btn.dataset.h;
+  generatePalette();
+updateGradient();
+}
+function generatePalette() {
+  const {r,g,b}=hexToRgb(palColor);
+  const {h,s,l}=rgbToHsl(r,g,b);
+  let colors=[];
+  if(palHarmony==='complementary') {
+    colors=[h,h+180].flatMap(hh=>[
+      hslToRgb((hh+360)%360,s,Math.max(10,l-35)),
+      hslToRgb((hh+360)%360,s,Math.max(15,l-20)),
+      hslToRgb((hh+360)%360,s,l),
+      hslToRgb((hh+360)%360,s,Math.min(85,l+20)),
+      hslToRgb((hh+360)%360,Math.max(10,s-20),Math.min(92,l+35)),
+    ]).slice(0,10);
+  } else if(palHarmony==='analogous') {
+    colors=[-60,-40,-20,0,20,40,60].flatMap(d=>[
+      hslToRgb((h+d+360)%360,s,l),
+      hslToRgb((h+d+360)%360,s,Math.min(85,l+18)),
+    ]).slice(0,10);
+  } else if(palHarmony==='triadic') {
+    colors=[0,120,240].flatMap(d=>[
+      hslToRgb((h+d+360)%360,s,Math.max(15,l-20)),
+      hslToRgb((h+d+360)%360,s,l),
+      hslToRgb((h+d+360)%360,Math.max(15,s-25),Math.min(85,l+20)),
+      hslToRgb((h+d+360)%360,s,Math.min(90,l+35)),
+    ]).slice(0,10);
+  } else if(palHarmony==='split') {
+    colors=[h,h+150,h+210].flatMap(hh=>[
+      hslToRgb((hh+360)%360,s,Math.max(15,l-20)),
+      hslToRgb((hh+360)%360,s,l),
+      hslToRgb((hh+360)%360,s,Math.min(85,l+20)),
+      hslToRgb((hh+360)%360,Math.max(10,s-20),Math.min(90,l+35)),
+    ]).slice(0,10);
+  } else if(palHarmony==='tetradic') {
+    colors=[0,90,180,270].flatMap(d=>[
+      hslToRgb((h+d+360)%360,s,Math.max(15,l-15)),
+      hslToRgb((h+d+360)%360,s,l),
+      hslToRgb((h+d+360)%360,s,Math.min(85,l+18)),
+    ]).slice(0,10);
+  } else if(palHarmony==='tints') {
+    colors=[0,10,20,30,40,50,60,70,80,90].map(d=>hslToRgb(h,Math.max(0,s-d/4),Math.min(96,l+d)));
+  } else if(palHarmony==='shades') {
+    colors=[0,8,16,24,32,40,50,60,70,80].map(d=>hslToRgb(h,Math.min(100,s+d/10),Math.max(4,l-d)));
+  }
+  document.getElementById('palette-swatches').innerHTML=colors.map(c=>{
+    const hex=rgbToHex(c.r,c.g,c.b);
+    return `<div class="swatch" onclick="copyVal(this,'${hex}')">
+      <div class="swatch-color" style="background:${hex}"></div>
+      <div class="swatch-info">
+        <div class="swatch-hex">${hex}</div>
+        <div class="swatch-name">${namedColor(hex)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+
+// ============================================================
+//  HISTORY
+// ============================================================
+let colorHistory = [];
+function addToHistory(hex) {
+  hex = hex.toUpperCase();
+  colorHistory = [hex, ...colorHistory.filter(h => h !== hex)].slice(0, 12);
+  const bar = document.getElementById('history-bar');
+  const swatches = document.getElementById('history-swatches');
+  if (colorHistory.length > 0) {
+    bar.style.display = 'block';
+    swatches.innerHTML = colorHistory.map(h => `
+      <div title="${h}" onclick="copyVal(this,'${h}')" style="width:32px;height:32px;border-radius:8px;background:${h};cursor:pointer;border:1px solid rgba(255,255,255,0.1);transition:transform 0.15s;flex-shrink:0" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='none'"></div>
+    `).join('');
+  }
+}
+
+// ============================================================
+//  GRADIENT
+// ============================================================
+function updateGradient() {
+  const c1 = document.getElementById('grad-c1').value;
+  const c2 = document.getElementById('grad-c2').value;
+  document.getElementById('grad-h1').value = c1.toUpperCase();
+  document.getElementById('grad-h2').value = c2.toUpperCase();
+  const type = document.getElementById('grad-type').value;
+  const angle = document.getElementById('grad-angle').value;
+  let css;
+  if (type === 'linear') css = `linear-gradient(${angle}deg, ${c1}, ${c2})`;
+  else if (type === 'radial') css = `radial-gradient(circle, ${c1}, ${c2})`;
+  else css = `conic-gradient(from ${angle}deg, ${c1}, ${c2}, ${c1})`;
+  document.getElementById('gradient-preview').style.background = css;
+  document.getElementById('grad-css-output').textContent = `background: ${css};`;
+}
+function gradHexInput(n, val) {
+  if (isValidHex(val)) {
+    document.getElementById('grad-c' + n).value = val;
+    updateGradient();
+  }
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+updateColor(1,'#7C6AF7');
+updateColor(2,'#F76AB0');
+updateConvert('#7C6AF7');
+updateContrast('fg','#FFFFFF');
+updateContrast('bg','#7C6AF7');
+document.getElementById('pal-src-prev').style.background='#7C6AF7';
+generatePalette();
+updateGradient();
+</script>
+</body>
+</html>
